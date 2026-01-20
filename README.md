@@ -28,19 +28,11 @@
 ' ⚡ [사용자 설정 구역] 이 부분만 수정하세요! ⚡
 
 ' ==========================================================
-
-' 1. 데이터 위치 설정
-Const START_ROW_NUM As Long = 1      ' 데이터가 몇 번째 줄부터 시작하나요?
-
-Const START_COL_CHAR As String = "B" ' 시작 열 (예: A, B, C...)
-
-Const END_COL_CHAR As String = "G"   ' 끝 열
-
-
-
-' 2. 반올림 설정 (소수점 몇 째 자리까지 남길지)
-Const DIGITS_DEFAULT As Integer = 3  ' 기본적으로 소수점 3자리까지 남김 (0.###)
-
-Const DIGITS_SPECIAL As Integer = 5  ' 특별한 열은 소수점 5자리까지 남김
-
-Const SPECIAL_COL_CHAR As String = "E" ' 특별 규칙을 적용할 열 (예: E열)
+| 변수명 | 설정 값 | 설명 |
+| :--- | :--- | :--- |
+| **`START_ROW_NUM`** | `1` | 데이터가 시작되는 **행 번호** |
+| **`START_COL_CHAR`** | `"B"` | 복사를 시작할 **열 문자** |
+| **`END_COL_CHAR`** | `"G"` | 복사를 끝낼 **열 문자** |
+| **`DIGITS_DEFAULT`** | `3` | 기본적으로 남길 **소수점 자릿수** |
+| **`SPECIAL_COL_CHAR`** | `"E"` | 특별 자릿수를 적용할 **열 문자** |
+| **`DIGITS_SPECIAL`** | `5` | 특별 열에 적용할 **소수점 자릿수** |
