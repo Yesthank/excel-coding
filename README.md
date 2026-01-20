@@ -10,7 +10,7 @@
 
 ## 🚀 사용 방법
 1. 엑셀에서 `Alt + F11`을 누릅니다.
-2. 상단 `삽입`-`모듈`탭을 클릭하고 `code.txt`에 있는 코드를 복사, 붙여넣기 합니다.
+2. 상단 `삽입`-`모듈`탭을 클릭하고 `code.txt` [code.txt](code.txt)에 있는 코드를 복사, 붙여넣기 합니다.
 3. 엑셀에서 `Alt + F8`을 누릅니다.
 4. `StartSequentialCopy`를 선택하고 **[실행]**을 누릅니다.
 5. 준비 완료 메시지가 뜨면 입력을 시작합니다.
@@ -31,6 +31,8 @@
 Const START_ROW_NUM As Long = 1      ' 데이터가 몇 번째 줄부터 시작하나요?
 Const START_COL_CHAR As String = "B" ' 시작 열 (예: A, B, C...)
 Const END_COL_CHAR As String = "G"   ' 끝 열
+
+
 
 ' 2. 반올림 설정 (소수점 몇 째 자리까지 남길지)
 Const DIGITS_DEFAULT As Integer = 3  ' 기본적으로 소수점 3자리까지 남김 (0.###)
