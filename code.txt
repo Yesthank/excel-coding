@@ -1,0 +1,176 @@
+Option Explicit
+
+' ==========================================================
+' [시스템 설정] 윈도우 운영체제 API 선언 (수정하지 마세요)
+' ==========================================================
+#If VBA7 Then
+    Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+    Private Declare PtrSafe Function OpenClipboard Lib "user32" (ByVal hwnd As LongPtr) As Long
+    Private Declare PtrSafe Function EmptyClipboard Lib "user32" () As Long
+    Private Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
+    Private Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As Long, ByVal hMem As LongPtr) As LongPtr
+    Private Declare PtrSafe Function GlobalAlloc Lib "kernel32" (ByVal wFlags As Long, ByVal dwBytes As LongPtr) As LongPtr
+    Private Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+    Private Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As Long
+    Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As LongPtr)
+#Else
+    Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
+    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+    Private Declare Function OpenClipboard Lib "user32" (ByVal hwnd As Long) As Long
+    Private Declare Function EmptyClipboard Lib "user32" () As Long
+    Private Declare Function CloseClipboard Lib "user32" () As Long
+    Private Declare Function SetClipboardData Lib "user32" (ByVal wFormat As Long, ByVal hMem As Long) As Long
+    Private Declare Function GlobalAlloc Lib "kernel32" (ByVal wFlags As Long, ByVal dwBytes As Long) As Long
+    Private Declare Function GlobalLock Lib "kernel32" (ByVal hMem As Long) As Long
+    Private Declare Function GlobalUnlock Lib "kernel32" (ByVal hMem As Long) As Long
+    Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As Long, ByVal Source As Long, ByVal Length As Long)
+#End If
+
+Const GMEM_MOVEABLE As Long = &H2
+Const CF_UNICODETEXT As Long = 13
+
+' ==========================================================
+' [메인 프로그램] 실행 로직
+' ==========================================================
+Sub StartSequentialCopy()
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim r As Long, c As Long
+    Dim dataList As Collection
+    Dim i As Long
+    Dim currentVal As String
+    Dim rawVal As Variant
+    
+    ' 변수 선언 (설정값 저장용)
+    Dim startColNum As Long, endColNum As Long
+    Dim specialColNum As Long
+    Dim fmtDefault As String, fmtSpecial As String
+    
+    ' ==========================================================
+    ' ⚡ [사용자 설정 구역] 이 부분만 수정하세요! ⚡
+    ' ==========================================================
+    
+    ' 1. 데이터 위치 설정
+    Const START_ROW_NUM As Long = 1      ' 데이터가 시작되는 행 번호 (제목이 있으면 2)
+    Const START_COL_CHAR As String = "B" ' 시작 열 (알파벳)
+    Const END_COL_CHAR As String = "G"   ' 끝 열 (알파벳)
+    
+    ' 2. 반올림 설정 (소수점 몇 째 자리까지 남길지)
+    ' 예: 3으로 설정하면 소수점 넷째 자리에서 반올림하여 "0.123"이 됨
+    Const DIGITS_DEFAULT As Integer = 3  ' [기본] 남길 소수점 자릿수 (B,C,D,F,G열)
+    Const DIGITS_SPECIAL As Integer = 5  ' [특별] 남길 소수점 자릿수 (E열)
+    Const SPECIAL_COL_CHAR As String = "E" ' 특별 규칙을 적용할 열 (알파벳)
+    
+    ' ==========================================================
+    ' [설정 끝] 아래 코드는 건드리지 않아도 됩니다.
+    ' ==========================================================
+    
+    Set ws = ActiveSheet
+    
+    ' 알파벳을 숫자로 변환 (예: "B" -> 2)
+    startColNum = ws.Range(START_COL_CHAR & "1").Column
+    endColNum = ws.Range(END_COL_CHAR & "1").Column
+    specialColNum = ws.Range(SPECIAL_COL_CHAR & "1").Column
+    
+    ' 포맷 문자열 생성 (예: "0." & "###" -> "0.###")
+    fmtDefault = "0." & String(DIGITS_DEFAULT, "#")
+    fmtSpecial = "0." & String(DIGITS_SPECIAL, "#")
+    
+    ' 1. 데이터 읽기
+    Set dataList = New Collection
+    lastRow = ws.Cells(ws.Rows.Count, START_COL_CHAR).End(xlUp).Row
+    
+    If lastRow < START_ROW_NUM Then
+        MsgBox "데이터가 없습니다. " & START_COL_CHAR & "열을 확인해주세요."
+        Exit Sub
+    End If
+    
+    For r = START_ROW_NUM To lastRow
+        For c = startColNum To endColNum
+            rawVal = ws.Cells(r, c).Value
+            
+            ' 값이 숫자일 경우 반올림 규칙 적용
+            If IsNumeric(rawVal) And rawVal <> "" Then
+                If c = specialColNum Then
+                    ' 특별 열 (예: E열)
+                    currentVal = Format(rawVal, fmtSpecial)
+                Else
+                    ' 나머지 일반 열
+                    currentVal = Format(rawVal, fmtDefault)
+                End If
+            Else
+                ' 숫자가 아니면 그대로
+                currentVal = CStr(rawVal)
+            End If
+            
+            dataList.Add currentVal
+        Next c
+    Next r
+    
+    ' 2. 준비 완료 메시지
+    MsgBox "데이터 로드 완료! (총 " & dataList.Count & "개)" & vbCrLf & vbCrLf & _
+           "- 범위: " & START_COL_CHAR & "열 ~ " & END_COL_CHAR & "열" & vbCrLf & _
+           "- 설정: 기본(소수 " & DIGITS_DEFAULT & "자리), " & SPECIAL_COL_CHAR & "열(소수 " & DIGITS_SPECIAL & "자리)" & vbCrLf & vbCrLf & _
+           "[왼쪽 Shift] : 다음 데이터 복사" & vbCrLf & _
+           "[오른쪽 Shift] : 되돌리기" & vbCrLf & _
+           "[ESC] : 종료", vbInformation, "준비 끝"
+           
+    ' 3. 키보드 감시 시작
+    i = 1
+    Do
+        If GetAsyncKeyState(&H1B) <> 0 Then ' ESC
+            MsgBox "프로그램을 종료합니다."
+            Application.StatusBar = False
+            Exit Sub
+        End If
+        
+        If GetAsyncKeyState(&HA0) <> 0 Then ' 왼쪽 Shift (다음)
+            If i <= dataList.Count Then
+                currentVal = CStr(dataList(i))
+                If PutInClipboard(currentVal) Then
+                    Application.StatusBar = "복사됨 (" & i & "/" & dataList.Count & ") ▶ " & currentVal
+                    i = i + 1
+                Else
+                    Application.StatusBar = "오류 발생! 다시 시도하세요."
+                End If
+                Sleep 300
+            Else
+                MsgBox "모든 데이터 입력이 끝났습니다!"
+                Sleep 300
+            End If
+        End If
+        
+        If GetAsyncKeyState(&HA1) <> 0 Then ' 오른쪽 Shift (이전)
+            If i > 1 Then
+                i = i - 1
+                currentVal = CStr(dataList(i - 1))
+                Call PutInClipboard(currentVal)
+                Application.StatusBar = "◀ 되돌림 (" & (i - 1) & "/" & dataList.Count & ") : " & currentVal
+                Sleep 300
+            End If
+        End If
+        
+        DoEvents
+        Sleep 50
+    Loop
+End Sub
+
+Function PutInClipboard(ByVal sText As String) As Boolean
+    Dim hGlobal As LongPtr, lpString As LongPtr
+    Dim bSuccess As Boolean
+    bSuccess = False
+    
+    If OpenClipboard(0) Then
+        EmptyClipboard
+        hGlobal = GlobalAlloc(GMEM_MOVEABLE, LenB(sText) + 2)
+        If hGlobal <> 0 Then
+            lpString = GlobalLock(hGlobal)
+            CopyMemory lpString, StrPtr(sText), LenB(sText) + 2
+            GlobalUnlock hGlobal
+            If SetClipboardData(CF_UNICODETEXT, hGlobal) <> 0 Then bSuccess = True
+        End If
+        CloseClipboard
+    End If
+    PutInClipboard = bSuccess
+End Function
