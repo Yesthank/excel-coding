@@ -27,12 +27,44 @@
 
 ' ⚡ [사용자 설정 구역] 이 부분만 수정하세요! ⚡
 
-' ==========================================================
-| 변수명 | 설정 값 | 설명 |
-| :--- | :--- | :--- |
-| **`START_ROW_NUM`** | `1` | 데이터가 시작되는 **행 번호** |
-| **`START_COL_CHAR`** | `"B"` | 복사를 시작할 **열 문자** |
-| **`END_COL_CHAR`** | `"G"` | 복사를 끝낼 **열 문자** |
-| **`DIGITS_DEFAULT`** | `3` | 기본적으로 남길 **소수점 자릿수** |
-| **`SPECIAL_COL_CHAR`** | `"E"` | 특별 자릿수를 적용할 **열 문자** |
-| **`DIGITS_SPECIAL`** | `5` | 특별 열에 적용할 **소수점 자릿수** |
+<table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
+  <thead style="background-color: #f2f2f2;">
+    <tr>
+      <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">변수명</th>
+      <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">설정 값</th>
+      <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">설명</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;"><strong><code>START_ROW_NUM</code></strong></td>
+      <td style="border: 1px solid #ddd; padding: 8px;"><code>1</code></td>
+      <td style="border: 1px solid #ddd; padding: 8px;">데이터가 시작되는 <strong>행 번호</strong></td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;"><strong><code>START_COL_CHAR</code></strong></td>
+      <td style="border: 1px solid #ddd; padding: 8px;"><code>"B"</code></td>
+      <td style="border: 1px solid #ddd; padding: 8px;">복사를 시작할 <strong>열 문자</strong></td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;"><strong><code>END_COL_CHAR</code></strong></td>
+      <td style="border: 1px solid #ddd; padding: 8px;"><code>"G"</code></td>
+      <td style="border: 1px solid #ddd; padding: 8px;">복사를 끝낼 <strong>열 문자</strong></td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;"><strong><code>DIGITS_DEFAULT</code></strong></td>
+      <td style="border: 1px solid #ddd; padding: 8px;"><code>3</code></td>
+      <td style="border: 1px solid #ddd; padding: 8px;">기본적으로 남길 <strong>소수점 자릿수</strong></td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;"><strong><code>SPECIAL_COL_CHAR</code></strong></td>
+      <td style="border: 1px solid #ddd; padding: 8px;"><code>"E"</code></td>
+      <td style="border: 1px solid #ddd; padding: 8px;">특별 자릿수를 적용할 <strong>열 문자</strong></td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;"><strong><code>DIGITS_SPECIAL</code></strong></td>
+      <td style="border: 1px solid #ddd; padding: 8px;"><code>5</code></td>
+      <td style="border: 1px solid #ddd; padding: 8px;">특별 열에 적용할 <strong>소수점 자릿수</strong></td>
+    </tr>
+  </tbody>
+</table>
