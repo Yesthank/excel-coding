@@ -24,7 +24,7 @@
 1. 엑셀에서 `Alt + F11` → VBA 편집기 열기
 2. 상단 메뉴 `삽입` → `모듈` 클릭
 3. [code.txt](code.txt)의 내용 전체를 복사하여 붙여넣기
-4. `Alt + F8` → `StartSequentialCopy` 선택 → **[실행]**
+4. 엑셀창을 다시 띄우고 `Alt + F8` → `StartSequentialCopy` 선택 → **[실행]**
 5. 준비 완료 메시지가 뜨면 시작
 
 ---
