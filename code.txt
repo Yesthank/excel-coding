@@ -1,8 +1,26 @@
 Option Explicit
 
-' ==========================================================
-' [시스템 설정] 윈도우 운영체제 API 선언 (수정하지 마세요)
-' ==========================================================
+' ==============================================================
+' ⚡ [사용자 설정 구역] 이 부분만 수정하세요! ⚡
+' ==============================================================
+
+' --- 1. 데이터 범위 설정 ---
+Private Const START_ROW_NUM  As Long   = 1    ' 데이터 시작 행 (헤더가 있으면 2로 변경)
+Private Const START_COL_CHAR As String = "B"  ' 복사 시작 열 (알파벳)
+Private Const END_COL_CHAR   As String = "G"  ' 복사 끝 열 (알파벳)
+
+' --- 2. 소수점 반올림 설정 ---
+Private Const DIGITS_DEFAULT  As Integer = 3  ' 기본 소수점 자릿수 (0 이면 정수로 반올림)
+Private Const DIGITS_SPECIAL  As Integer = 5  ' 특별 열 소수점 자릿수
+
+' --- 3. 특별 자릿수 열 설정 ---
+' 특별 자릿수를 적용할 열을 쉼표로 구분해 나열 (예: "E,F")
+' 없애려면 빈 문자열("")로 설정
+Private Const SPECIAL_COLS As String = "E"
+
+' ==============================================================
+' [시스템 설정] 아래는 수정하지 마세요
+' ==============================================================
 #If VBA7 Then
     Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
@@ -27,122 +45,113 @@ Option Explicit
     Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As Long, ByVal Source As Long, ByVal Length As Long)
 #End If
 
-Const GMEM_MOVEABLE As Long = &H2
-Const CF_UNICODETEXT As Long = 13
+Private Const GMEM_MOVEABLE  As Long = &H2
+Private Const CF_UNICODETEXT As Long = 13
 
-' ==========================================================
-' [메인 프로그램] 실행 로직
-' ==========================================================
+' ==============================================================
+' [메인 프로그램]
+' ==============================================================
 Sub StartSequentialCopy()
-    Dim ws As Worksheet
-    Dim lastRow As Long
-    Dim r As Long, c As Long
-    Dim dataList As Collection
-    Dim i As Long
-    Dim currentVal As String
-    Dim rawVal As Variant
-    
-    ' 변수 선언 (설정값 저장용)
+    Dim ws          As Worksheet
+    Dim dataList    As Collection
+    Dim lastRow     As Long
+    Dim r As Long, c As Long, i As Long
     Dim startColNum As Long, endColNum As Long
-    Dim specialColNum As Long
-    Dim fmtDefault As String, fmtSpecial As String
-    
-    ' ==========================================================
-    ' ⚡ [사용자 설정 구역] 이 부분만 수정하세요! ⚡
-    ' ==========================================================
-    
-    ' 1. 데이터 위치 설정
-    Const START_ROW_NUM As Long = 1      ' 데이터가 시작되는 행 번호 (제목이 있으면 2)
-    Const START_COL_CHAR As String = "B" ' 시작 열 (알파벳)
-    Const END_COL_CHAR As String = "G"   ' 끝 열 (알파벳)
-    
-    ' 2. 반올림 설정 (소수점 몇 째 자리까지 남길지)
-    ' 예: 3으로 설정하면 소수점 넷째 자리에서 반올림하여 "0.123"이 됨
-    Const DIGITS_DEFAULT As Integer = 3  ' [기본] 남길 소수점 자릿수 (B,C,D,F,G열)
-    Const DIGITS_SPECIAL As Integer = 5  ' [특별] 남길 소수점 자릿수 (E열)
-    Const SPECIAL_COL_CHAR As String = "E" ' 특별 규칙을 적용할 열 (알파벳)
-    
-    ' ==========================================================
-    ' [설정 끝] 아래 코드는 건드리지 않아도 됩니다.
-    ' ==========================================================
-    
+    Dim currentVal  As String
+    Dim rawVal      As Variant
+    Dim fmtDefault  As String, fmtSpecial As String
+    Dim specialNums As String  ' 특별 열 번호들 (쉼표 구분)
+
     Set ws = ActiveSheet
-    
-    ' 알파벳을 숫자로 변환 (예: "B" -> 2)
+
+    ' 열 문자 → 열 번호 변환
     startColNum = ws.Range(START_COL_CHAR & "1").Column
-    endColNum = ws.Range(END_COL_CHAR & "1").Column
-    specialColNum = ws.Range(SPECIAL_COL_CHAR & "1").Column
-    
-    ' 포맷 문자열 생성 (예: "0." & "###" -> "0.###")
+    endColNum   = ws.Range(END_COL_CHAR   & "1").Column
+
+    ' 특별 열 목록을 열 번호 문자열로 변환 (예: "E,F" → "5,6,")
+    specialNums = ""
+    If Len(Trim(SPECIAL_COLS)) > 0 Then
+        Dim colToken As Variant
+        For Each colToken In Split(SPECIAL_COLS, ",")
+            Dim tok As String
+            tok = Trim(CStr(colToken))
+            If Len(tok) > 0 Then
+                specialNums = specialNums & ws.Range(tok & "1").Column & ","
+            End If
+        Next colToken
+    End If
+
+    ' 포맷 문자열 생성 (예: DIGITS=3 → "0.###")
     fmtDefault = "0." & String(DIGITS_DEFAULT, "#")
     fmtSpecial = "0." & String(DIGITS_SPECIAL, "#")
-    
-    ' 1. 데이터 읽기
+
+    ' 데이터 읽기
     Set dataList = New Collection
     lastRow = ws.Cells(ws.Rows.Count, START_COL_CHAR).End(xlUp).Row
-    
+
     If lastRow < START_ROW_NUM Then
         MsgBox "데이터가 없습니다. " & START_COL_CHAR & "열을 확인해주세요."
         Exit Sub
     End If
-    
+
     For r = START_ROW_NUM To lastRow
         For c = startColNum To endColNum
             rawVal = ws.Cells(r, c).Value
-            
-            ' 값이 숫자일 경우 반올림 규칙 적용
             If IsNumeric(rawVal) And rawVal <> "" Then
-                If c = specialColNum Then
-                    ' 특별 열 (예: E열)
+                ' 특별 열 여부 확인 (","로 감싸서 정확히 비교)
+                If Len(specialNums) > 0 And InStr("," & specialNums, "," & c & ",") > 0 Then
                     currentVal = Format(rawVal, fmtSpecial)
                 Else
-                    ' 나머지 일반 열
                     currentVal = Format(rawVal, fmtDefault)
                 End If
             Else
-                ' 숫자가 아니면 그대로
                 currentVal = CStr(rawVal)
             End If
-            
             dataList.Add currentVal
         Next c
     Next r
-    
-    ' 2. 준비 완료 메시지
+
+    ' 준비 완료 메시지
+    Dim specialInfo As String
+    If Len(specialNums) > 0 Then
+        specialInfo = ", " & SPECIAL_COLS & "열(소수 " & DIGITS_SPECIAL & "자리)"
+    Else
+        specialInfo = ""
+    End If
+
     MsgBox "데이터 로드 완료! (총 " & dataList.Count & "개)" & vbCrLf & vbCrLf & _
            "- 범위: " & START_COL_CHAR & "열 ~ " & END_COL_CHAR & "열" & vbCrLf & _
-           "- 설정: 기본(소수 " & DIGITS_DEFAULT & "자리), " & SPECIAL_COL_CHAR & "열(소수 " & DIGITS_SPECIAL & "자리)" & vbCrLf & vbCrLf & _
+           "- 설정: 기본(소수 " & DIGITS_DEFAULT & "자리)" & specialInfo & vbCrLf & vbCrLf & _
            "[왼쪽 Shift] : 다음 데이터 복사" & vbCrLf & _
            "[오른쪽 Shift] : 되돌리기" & vbCrLf & _
            "[ESC] : 종료", vbInformation, "준비 끝"
-           
-    ' 3. 키보드 감시 시작
+
+    ' 키보드 감시 루프
     i = 1
     Do
-        If GetAsyncKeyState(&H1B) <> 0 Then ' ESC
-            MsgBox "프로그램을 종료합니다."
+        If GetAsyncKeyState(&H1B) <> 0 Then          ' ESC → 종료
             Application.StatusBar = False
+            MsgBox "프로그램을 종료합니다."
             Exit Sub
         End If
-        
-        If GetAsyncKeyState(&HA0) <> 0 Then ' 왼쪽 Shift (다음)
+
+        If GetAsyncKeyState(&HA0) <> 0 Then          ' 왼쪽 Shift → 다음
             If i <= dataList.Count Then
                 currentVal = CStr(dataList(i))
                 If PutInClipboard(currentVal) Then
                     Application.StatusBar = "복사됨 (" & i & "/" & dataList.Count & ") ▶ " & currentVal
-                    i = i + 1
                 Else
-                    Application.StatusBar = "오류 발생! 다시 시도하세요."
+                    Application.StatusBar = "오류: 클립보드 접근 실패. 다시 시도하세요."
                 End If
-                Sleep 300
+                i = i + 1
             Else
                 MsgBox "모든 데이터 입력이 끝났습니다!"
-                Sleep 300
             End If
+            Sleep 300
         End If
-        
-        If GetAsyncKeyState(&HA1) <> 0 Then ' 오른쪽 Shift (이전)
-            If i > 1 Then
+
+        If GetAsyncKeyState(&HA1) <> 0 Then          ' 오른쪽 Shift → 이전
+            If i > 2 Then
                 i = i - 1
                 currentVal = CStr(dataList(i - 1))
                 Call PutInClipboard(currentVal)
@@ -150,17 +159,21 @@ Sub StartSequentialCopy()
                 Sleep 300
             End If
         End If
-        
+
         DoEvents
         Sleep 50
     Loop
 End Sub
 
+' ==============================================================
+' [클립보드 함수] DataObject 없이 직접 Windows API 사용
+' (사내 보안 환경에서도 동작)
+' ==============================================================
 Function PutInClipboard(ByVal sText As String) As Boolean
-    Dim hGlobal As LongPtr, lpString As LongPtr
-    Dim bSuccess As Boolean
-    bSuccess = False
-    
+    Dim hGlobal  As LongPtr
+    Dim lpString As LongPtr
+
+    PutInClipboard = False
     If OpenClipboard(0) Then
         EmptyClipboard
         hGlobal = GlobalAlloc(GMEM_MOVEABLE, LenB(sText) + 2)
@@ -168,9 +181,8 @@ Function PutInClipboard(ByVal sText As String) As Boolean
             lpString = GlobalLock(hGlobal)
             CopyMemory lpString, StrPtr(sText), LenB(sText) + 2
             GlobalUnlock hGlobal
-            If SetClipboardData(CF_UNICODETEXT, hGlobal) <> 0 Then bSuccess = True
+            If SetClipboardData(CF_UNICODETEXT, hGlobal) <> 0 Then PutInClipboard = True
         End If
         CloseClipboard
     End If
-    PutInClipboard = bSuccess
 End Function
